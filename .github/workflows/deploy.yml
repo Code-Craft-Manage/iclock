@@ -1,0 +1,40 @@
+name: Deploy to HostGator
+
+# Publishes the site to HostGator over FTPS whenever main changes.
+# Runs on every push to main, and can be triggered by hand from the Actions tab.
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Upload files via FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps            # secure FTP over TLS; see README if HostGator rejects the cert
+          port: 21
+          # Dedicated FTP account is rooted at the iclock document root,
+          # so files land directly. (If you use the main cPanel account
+          # instead, change this to: iclock.codecraftmanage.com/ )
+          server-dir: ./
+          # Only publish the actual site files. Everything below stays in the
+          # repo but never reaches the web server.
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            .gitignore
+            .nojekyll
+            CNAME
+            README.md
+            SPEC.md
+            *.zip
