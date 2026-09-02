@@ -37,9 +37,10 @@ One-time setup:
    `FTP_SERVER` (server host/IP), `FTP_USERNAME`, `FTP_PASSWORD`.
 3. Push, or run the workflow from the **Actions** tab.
 
-If HostGator rejects the FTPS certificate, change `protocol: ftps` to
-`protocol: ftp` in the workflow. (The deploy account is scoped to just the
-iclock folder, so plain FTP's blast radius is limited to that folder.)
+Deploy uses plain **FTP** (HostGator's FTPS cert doesn't validate with this
+action). The deploy account is scoped to just the iclock folder and the
+files hold no secrets, so the exposure is limited; move to FTPS/SFTP later
+to harden.
 
 The site is served over **plain HTTP** so the iPad can reach `proxy.php`;
 keep cPanel's **Force HTTPS Redirect = off** for this subdomain.

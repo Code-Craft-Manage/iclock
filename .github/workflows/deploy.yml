@@ -20,7 +20,11 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps            # secure FTP over TLS; see README if HostGator rejects the cert
+          # Plain FTP: HostGator's FTPS cert (issued for *.hostgator.com, not
+          # this domain) fails validation in this action. The deploy account
+          # is scoped to the iclock folder and the files hold no secrets, so
+          # the exposure is limited. Switch to ftps/sftp later to harden.
+          protocol: ftp
           port: 21
           # Dedicated FTP account is rooted at the iclock document root,
           # so files land directly. (If you use the main cPanel account
