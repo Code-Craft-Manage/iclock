@@ -66,22 +66,20 @@ function getTempColor(t) {
   return '#ff3333';               // red
 }
 
-/* WMO weather code -> emoji (see SPEC section 6/7). */
-function weatherEmoji(code) {
-  if (code === 0) return '☀️';                 // clear
-  if (code === 1 || code === 2) return '⛅';         // partly cloudy
-  if (code === 3) return '☁️';                 // overcast
-  if (code === 45 || code === 48) return '🌫️'; // fog
-  if (code >= 51 && code <= 67) return '🌧️';   // drizzle / rain
-  if (code >= 71 && code <= 77) return '❄️';   // snow
-  if (code >= 80 && code <= 82) return '🌧️';   // rain showers
-  if (code === 85 || code === 86) return '❄️'; // snow showers
-  if (code >= 95) return '⛈️';                 // thunderstorm
-  return '·';
-}
-
-function windDirectionArrow() {
-  return '↑'; // up arrow, rotated via CSS transform
+/* WMO weather code -> Font Awesome 4.7 icon class + color. Vector icons
+   render reliably on the iPad 2 / iOS 9.3.5 (unlike some emoji), and the
+   colors mirror the old Clockosaurus look. */
+function weatherIcon(code) {
+  if (code === 0) return { cls: 'fa fa-sun-o', color: '#ffcc00' };                    // clear
+  if (code >= 1 && code <= 3) return { cls: 'fa fa-cloud', color: '#add8e6' };        // clouds
+  if (code === 45 || code === 48) return { cls: 'fa fa-cloud', color: '#cccccc' };    // fog
+  if (code >= 51 && code <= 57) return { cls: 'fa fa-cloud', color: '#87ceeb' };      // drizzle
+  if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82))
+    return { cls: 'fa fa-cloud', color: '#3399ff' };                                  // rain
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86)
+    return { cls: 'fa fa-snowflake-o', color: '#ffffff' };                            // snow
+  if (code >= 95) return { cls: 'fa fa-bolt', color: '#ff9933' };                     // thunderstorm
+  return { cls: 'fa fa-question', color: '#ffffff' };
 }
 
 /* Unit-aware formatting. Temps are stored in Celsius; convert on display. */
@@ -121,8 +119,11 @@ function renderUnitParts(w) {
 function renderWeather(w, isStale) {
   if (!w) return;
 
-  // Condition icon
-  document.getElementById('condition-icon').innerHTML = weatherEmoji(w.code);
+  // Condition icon (Font Awesome class + color)
+  var ci = document.getElementById('condition-icon');
+  var icon = weatherIcon(w.code);
+  ci.className = icon.cls;
+  ci.style.color = icon.color;
 
   // Temperatures + wind speed (unit-dependent)
   renderUnitParts(w);
@@ -135,12 +136,12 @@ function renderWeather(w, isStale) {
   // Humidity
   document.getElementById('humidity-text').innerHTML = w.humidity + '%';
 
-  // Wind (speed text handled in renderUnitParts; direction + intensity here)
+  // Wind (speed text handled in renderUnitParts; direction here)
   var wind = document.getElementById('wind');
   var arrow = document.getElementById('wind-direction-icon');
-  arrow.innerHTML = windDirectionArrow();
-  // Meteorological direction is "from"; point the arrow where wind goes to.
-  var deg = (w.windDir + 180) % 360;
+  // fa-location-arrow points NE (45°) by default; rotate it to the wind's
+  // compass direction, matching the old Clockosaurus behaviour.
+  var deg = w.windDir - 45;
   arrow.style.webkitTransform = 'rotate(' + deg + 'deg)';
   arrow.style.transform = 'rotate(' + deg + 'deg)';
 
