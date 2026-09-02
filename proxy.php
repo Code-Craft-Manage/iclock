@@ -28,6 +28,12 @@ $url = 'https://api.open-meteo.com/v1/forecast'
      . '&timezone=auto&forecast_days=1';
 
 $body = false;
+$err  = '';
+$code = 0;
+
+// A current CA bundle shipped next to this script, in case the host's system
+// bundle is too old to verify Open-Meteo's Let's Encrypt (ISRG Root X1) cert.
+$cacert = __DIR__ . '/cacert.pem';
 
 // Preferred: cURL (available on essentially all shared hosts, incl. HostGator).
 if (function_exists('curl_init')) {
@@ -37,8 +43,12 @@ if (function_exists('curl_init')) {
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
     curl_setopt($ch, CURLOPT_USERAGENT, 'iClock/1.0 (+weather proxy)');
+    if (is_readable($cacert)) {
+        curl_setopt($ch, CURLOPT_CAINFO, $cacert);
+    }
     $body = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    if ($body === false) { $err = 'curl: ' . curl_error($ch); }
     curl_close($ch);
     if ($body === false || $code != 200) {
         $body = false;
@@ -48,12 +58,14 @@ if (function_exists('curl_init')) {
 // Fallback: allow_url_fopen, if cURL wasn't available or failed.
 if ($body === false && ini_get('allow_url_fopen')) {
     $ctx = stream_context_create(array('http' => array('timeout' => 10)));
-    $body = @file_get_contents($url, false, $ctx);
+    $alt = @file_get_contents($url, false, $ctx);
+    if ($alt !== false) { $body = $alt; $err = ''; }
+    else if ($err === '') { $err = 'file_get_contents failed'; }
 }
 
 if ($body === false) {
     http_response_code(502);
-    echo '{"error":"upstream fetch failed"}';
+    echo json_encode(array('error' => 'upstream fetch failed', 'detail' => $err, 'http' => $code));
     exit;
 }
 
