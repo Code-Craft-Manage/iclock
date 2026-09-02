@@ -16,6 +16,19 @@ var STALE_MS = 3 * 60 * 60 * 1000;   // 3 hours -> dim the weather block
 /* Last weather values we managed to show (from network or cache). */
 var lastWeather = null;
 
+/* Unit system. Tap the temperature (or wind) to switch:
+   Celsius  -> °C, km/h, DD/MM (Brazil/world)
+   Fahrenheit -> °F, mph, MM/DD (US)
+   Initial choice comes from CONFIG.locale. */
+var isCelsius = (CONFIG.locale !== 'en-US');
+
+function cToF(c) {
+  return Math.round(c * 9 / 5 + 32);
+}
+function kmhToMph(kmh) {
+  return Math.round(kmh / 1.60934);
+}
+
 /* ---------------------------- Clock ---------------------------- */
 function pad2(n) {
   return (n < 10 ? '0' : '') + n;
@@ -28,10 +41,10 @@ function updateClock() {
   var day = now.getDate();
   var month = now.getMonth() + 1;
   var dateString;
-  if (CONFIG.locale === 'en-US') {
-    dateString = pad2(month) + '/' + pad2(day);
+  if (isCelsius) {
+    dateString = pad2(day) + '/' + pad2(month);   // DD/MM (Brazil/world)
   } else {
-    dateString = pad2(day) + '/' + pad2(month);
+    dateString = pad2(month) + '/' + pad2(day);   // MM/DD (US)
   }
 
   document.getElementById('clock').innerHTML = timeString;
@@ -66,25 +79,48 @@ function windDirectionArrow() {
   return '↑'; // up arrow, rotated via CSS transform
 }
 
+/* Unit-aware formatting. Temps are stored in Celsius; convert on display. */
+function tempUnit() {
+  return isCelsius ? '°C' : '°F';
+}
+function fmtTemp(c) {
+  if (c === null || c === undefined) return '--';
+  return isCelsius ? c : cToF(c);
+}
+function fmtWind(kmh) {
+  if (kmh === null || kmh === undefined) return '--';
+  return isCelsius ? (kmh + ' km/h') : (kmhToMph(kmh) + ' mph');
+}
+
 /* --------------------------- Rendering --------------------------- */
+/* Only the unit-dependent bits (temperatures + wind speed text). Called by
+   renderWeather and again on each unit toggle, using the stored values. */
+function renderUnitParts(w) {
+  if (!w) return;
+
+  var main = document.getElementById('temp-main');
+  main.innerHTML = '<span id="temp-main-value">' + fmtTemp(w.temp) + '</span>' + tempUnit();
+  main.style.color = getTempColor(w.temp);   // color always keyed to °C value
+
+  var min = document.getElementById('temp-min');
+  min.innerHTML = 'min ' + fmtTemp(w.tempMin) + tempUnit();
+  min.style.color = getTempColor(w.tempMin);
+
+  var max = document.getElementById('temp-max');
+  max.innerHTML = 'max ' + fmtTemp(w.tempMax) + tempUnit();
+  max.style.color = getTempColor(w.tempMax);
+
+  document.getElementById('wind-speed-text').innerHTML = fmtWind(w.wind);
+}
+
 function renderWeather(w, isStale) {
   if (!w) return;
 
   // Condition icon
   document.getElementById('condition-icon').innerHTML = weatherEmoji(w.code);
 
-  // Temperatures
-  var main = document.getElementById('temp-main');
-  main.innerHTML = '<span id="temp-main-value">' + w.temp + '</span>°C';
-  main.style.color = getTempColor(w.temp);
-
-  var min = document.getElementById('temp-min');
-  min.innerHTML = 'min ' + w.tempMin + '°C';
-  min.style.color = getTempColor(w.tempMin);
-
-  var max = document.getElementById('temp-max');
-  max.innerHTML = 'max ' + w.tempMax + '°C';
-  max.style.color = getTempColor(w.tempMax);
+  // Temperatures + wind speed (unit-dependent)
+  renderUnitParts(w);
 
   // Rain
   var rain = document.getElementById('rain');
@@ -94,9 +130,8 @@ function renderWeather(w, isStale) {
   // Humidity
   document.getElementById('humidity-text').innerHTML = w.humidity + '%';
 
-  // Wind
+  // Wind (speed text handled in renderUnitParts; direction + intensity here)
   var wind = document.getElementById('wind');
-  document.getElementById('wind-speed-text').innerHTML = w.wind + ' km/h';
   var arrow = document.getElementById('wind-direction-icon');
   arrow.innerHTML = windDirectionArrow();
   // Meteorological direction is "from"; point the arrow where wind goes to.
@@ -183,8 +218,27 @@ function fetchWeather() {
   } catch (e) { /* offline - ignore, retry next tick */ }
 }
 
+/* ----------------------- Unit toggle (tap) ----------------------- */
+function toggleUnits() {
+  isCelsius = !isCelsius;
+  updateClock();              // date order flips immediately
+  renderUnitParts(lastWeather); // temps + wind speed re-render (no-op if null)
+}
+
+function bindToggle() {
+  var temp = document.getElementById('temp-block');
+  if (temp) {
+    temp.onclick = toggleUnits; // onclick keeps it simple + old-Safari safe
+  }
+  var wind = document.getElementById('wind');
+  if (wind) {
+    wind.onclick = toggleUnits;
+  }
+}
+
 /* --------------------------- Startup --------------------------- */
 function init() {
+  bindToggle();
   updateClock();
   setInterval(updateClock, 1000);
 

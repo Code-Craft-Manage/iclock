@@ -45,6 +45,14 @@ body {
   margin-top: 24px;
 }
 
+/* Tap the temperature or wind to switch °C/km/h <-> °F/mph (and date order) */
+#temp-block, #wind {
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 #temp-main {
   font-size: 120px;
   margin-right: 24px;
