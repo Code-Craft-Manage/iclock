@@ -11,6 +11,7 @@ var CONFIG = {
 };
 
 var CACHE_KEY = 'iclock_weather';
+var UNIT_KEY = 'iclock_unit';        // remembers 'C' or 'F' across reloads
 var STALE_MS = 3 * 60 * 60 * 1000;   // 3 hours -> dim the weather block
 
 /* Last weather values we managed to show (from network or cache). */
@@ -170,6 +171,22 @@ function loadCache() {
   }
 }
 
+/* Remember the chosen unit ('C'/'F') so a reload keeps it. */
+function saveUnit() {
+  try {
+    window.localStorage.setItem(UNIT_KEY, isCelsius ? 'C' : 'F');
+  } catch (e) { /* storage disabled - ignore */ }
+}
+
+function applyStoredUnit() {
+  try {
+    var u = window.localStorage.getItem(UNIT_KEY);
+    if (u === 'C') { isCelsius = true; }
+    else if (u === 'F') { isCelsius = false; }
+    // no stored value -> keep the CONFIG.locale default
+  } catch (e) { /* storage disabled - keep default */ }
+}
+
 /* --------------------------- Network --------------------------- */
 function buildUrl() {
   return 'https://api.open-meteo.com/v1/forecast'
@@ -221,6 +238,7 @@ function fetchWeather() {
 /* ----------------------- Unit toggle (tap) ----------------------- */
 function toggleUnits() {
   isCelsius = !isCelsius;
+  saveUnit();                // remember the choice for next reload
   updateClock();              // date order flips immediately
   renderUnitParts(lastWeather); // temps + wind speed re-render (no-op if null)
 }
@@ -238,6 +256,7 @@ function bindToggle() {
 
 /* --------------------------- Startup --------------------------- */
 function init() {
+  applyStoredUnit();   // restore last chosen unit before first render
   bindToggle();
   updateClock();
   setInterval(updateClock, 1000);
