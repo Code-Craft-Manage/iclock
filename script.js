@@ -6,6 +6,10 @@ var CONFIG = {
   latitude: -30.0346,   // Porto Alegre
   longitude: -51.2177,
   locale: 'pt-BR',      // 'pt-BR' = DD/MM ; 'en-US' = MM/DD
+  // Same-origin PHP proxy used as a fallback when the browser can't reach
+  // Open-Meteo directly (old iPad / iOS 9.3.5 has no modern TLS). Relative
+  // path, so it just works when index.html + proxy.php sit together.
+  proxyUrl: 'proxy.php',
   // Sunday-first, matching Date.getDay() (0 = Sunday). pt-BR default.
   weekdays: ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 };
@@ -188,13 +192,20 @@ function applyStoredUnit() {
 }
 
 /* --------------------------- Network --------------------------- */
-function buildUrl() {
+function buildDirectUrl() {
   return 'https://api.open-meteo.com/v1/forecast'
     + '?latitude=' + CONFIG.latitude
     + '&longitude=' + CONFIG.longitude
     + '&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m'
     + '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code'
     + '&timezone=auto&forecast_days=1';
+}
+
+/* Same-origin proxy (proxy.php) that fetches Open-Meteo server-side. */
+function buildProxyUrl() {
+  return CONFIG.proxyUrl
+    + '?lat=' + CONFIG.latitude
+    + '&lon=' + CONFIG.longitude;
 }
 
 function parseResponse(data) {
@@ -212,27 +223,58 @@ function parseResponse(data) {
   };
 }
 
-function fetchWeather() {
+/* Minimal ES5 JSON GET with a timeout and a single guaranteed callback.
+   ok(data) on HTTP 200 + valid JSON; fail() on anything else (error,
+   timeout, non-200, bad JSON, or a synchronous throw). */
+function getJson(url, timeoutMs, ok, fail) {
   var xhr = new XMLHttpRequest();
-  xhr.open('GET', buildUrl(), true);
+  var done = false;
+  function finish(isOk, data) {
+    if (done) return;
+    done = true;
+    if (isOk) { ok(data); } else { fail(); }
+  }
+  try {
+    xhr.open('GET', url, true);
+  } catch (e) { finish(false); return; }
+  if (timeoutMs) { xhr.timeout = timeoutMs; }
   xhr.onreadystatechange = function () {
     if (xhr.readyState !== 4) return;
     if (xhr.status === 200) {
-      try {
-        var data = JSON.parse(xhr.responseText);
-        var w = parseResponse(data);
-        lastWeather = w;
-        renderWeather(w, false);
-        saveCache(w);
-      } catch (e) {
-        // Bad payload: keep whatever is already on screen.
-      }
+      var data;
+      try { data = JSON.parse(xhr.responseText); }
+      catch (e) { finish(false); return; }
+      finish(true, data);
+    } else {
+      finish(false);
     }
-    // On any failure we simply keep the last-shown values and retry next tick.
   };
+  xhr.onerror = function () { finish(false); };
+  xhr.ontimeout = function () { finish(false); };
+  try { xhr.send(); }
+  catch (e) { finish(false); }
+}
+
+function handleWeatherData(data) {
   try {
-    xhr.send();
-  } catch (e) { /* offline - ignore, retry next tick */ }
+    var w = parseResponse(data);
+    lastWeather = w;
+    renderWeather(w, false);
+    saveCache(w);
+  } catch (e) {
+    // Bad payload: keep whatever is already on screen.
+  }
+}
+
+function fetchWeather() {
+  // Try Open-Meteo directly first (works on modern browsers). If that fails
+  // -- e.g. an old iPad whose TLS is too old to reach Open-Meteo -- fall back
+  // to the same-origin PHP proxy, which does the HTTPS server-side.
+  getJson(buildDirectUrl(), 8000, handleWeatherData, function () {
+    getJson(buildProxyUrl(), 12000, handleWeatherData, function () {
+      // Both failed: keep last-shown values, retry next tick.
+    });
+  });
 }
 
 /* ----------------------- Unit toggle (tap) ----------------------- */
