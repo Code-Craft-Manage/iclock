@@ -1,0 +1,107 @@
+html, body {
+  height: 100%;
+}
+
+body {
+  background-color: #000000;
+  color: #00ff00;
+  font-family: Courier, monospace;
+  text-align: center;
+  margin: 0;
+  -webkit-text-size-adjust: 100%;
+  overflow: hidden;
+}
+
+#container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  width: 100%;
+}
+
+#clock {
+  font-size: 180px;
+  line-height: 1;
+}
+
+#dateWeekday {
+  font-size: 64px;
+  margin-top: 20px;
+}
+
+#condition-icon {
+  margin-right: 0.15em;
+}
+
+#temp-block {
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-pack: center;
+  justify-content: center;
+  -webkit-box-align: center;
+  align-items: center;
+  margin-top: 24px;
+}
+
+#temp-main {
+  font-size: 120px;
+  margin-right: 24px;
+}
+
+#temp-range {
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  -webkit-box-pack: center;
+  justify-content: center;
+  font-size: 44px;
+  text-align: left;
+}
+
+#weather-info {
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-pack: center;
+  justify-content: center;
+  -webkit-box-align: center;
+  align-items: center;
+  margin-top: 24px;
+}
+
+#rain, #humidity {
+  font-size: 44px;
+  margin-right: 40px;
+  white-space: nowrap;
+}
+
+#humidity {
+  color: #66ccff;
+}
+
+#wind {
+  font-size: 40px;
+  white-space: nowrap;
+}
+
+#wind-direction-icon {
+  display: inline-block;
+}
+
+/* Rain text colors */
+.rain-dry  { color: #ffff66; }
+.rain-wet  { color: #66ccff; }
+
+/* Wind speed colors */
+.wind-calm     { color: #66ffcc; }
+.wind-moderate { color: #ff9933; }
+.wind-strong   { color: #ff3333; }
+
+/* Dim the whole weather block when data is stale */
+.stale {
+  opacity: 0.45;
+}

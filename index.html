@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <title>iClock</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="container">
+    <div id="clock">--:--:--</div>
+    <div id="dateWeekday">
+      <span id="condition-icon">·</span>
+      <span id="date-string">--/--</span>
+      <span id="weekday-string"></span>
+    </div>
+    <div id="temp-block">
+      <div id="temp-main"><span id="temp-main-value">--</span>&deg;C</div>
+      <div id="temp-range">
+        <div id="temp-min">min --&deg;C</div>
+        <div id="temp-max">max --&deg;C</div>
+      </div>
+    </div>
+    <div id="weather-info">
+      <div id="rain">&#127783; <span id="rain-text">--%</span></div>
+      <div id="humidity">&#128167; <span id="humidity-text">--%</span></div>
+      <div id="wind">&#127788; <span id="wind-speed-text">--</span> <span id="wind-direction-icon">&#8593;</span></div>
+    </div>
+  </div>
+  <script charset="utf-8" src="script.js"></script>
+</body>
+</html>
