@@ -306,7 +306,7 @@ function renderBirthdays(list) {
     el.className = 'hidden';
     return;
   }
-  document.getElementById('birthdays-text').innerHTML = list.join(', ');
+  document.getElementById('birthdays-text').textContent = list.join(', ');
   el.className = '';
 }
 
