@@ -25,10 +25,24 @@ exactly as it does now.
 
 ## Data source
 
-A calendar the user created in their own Google account (not the auto-generated
-"Birthdays" contacts calendar). Such a calendar exposes a **"Secret address in
-iCal format"** URL. iClock uses that URL live (auto-updates when the user edits
-the calendar); it is never exported statically.
+The user's own **"Nivers e Feriados"** calendar (Google, created by the user).
+Because it is a self-created calendar, it exposes a **"Secret address in iCal
+format"** URL, which iClock uses live — it auto-updates when the user edits the
+calendar and is never exported statically.
+
+Decisions made while confirming the source:
+
+- The auto-generated Google **"Birthdays"** calendar (the one that syncs from
+  Google Contacts) was ruled out: Google gives it only a one-time "Export
+  calendar" download, **no** live "Secret address in iCal format", so it cannot
+  be read live. Its exported entries are also contact-derived
+  ("X's birthday", "Happy birthday!").
+- Despite its name ("Birthdays *and Holidays*"), the user confirmed
+  "Nivers e Feriados" effectively contains **only birthdays**, so no
+  holiday-vs-birthday filtering is needed — every event matching today is shown
+  as a birthday.
+- Each event's `SUMMARY` is whatever the user typed in Google Calendar and is
+  shown verbatim (after ICS unescaping). Titles are not reformatted.
 
 ## Data flow
 
