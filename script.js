@@ -66,6 +66,9 @@ function updateClock() {
   // Refetch birthdays when the local date rolls over (e.g. across midnight).
   var md = pad2(month) + pad2(day);
   if (currentMd !== null && currentMd !== md) {
+    // Clear yesterday's names right away; fetchBirthdays fills in the new day.
+    // If we're offline at midnight the line stays empty rather than stale.
+    renderBirthdays([]);
     fetchBirthdays();
   }
   currentMd = md;
