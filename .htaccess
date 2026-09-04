@@ -1,0 +1,13 @@
+# Never serve the birthday secret config over HTTP, even if PHP ever fails to
+# execute it (in which case its raw contents — the secret iCal URL — would
+# otherwise be exposed). This blocks HTTP access only; birthdays.php still
+# include()s the file from disk normally.
+<Files "birthdays_secret.php">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</Files>
