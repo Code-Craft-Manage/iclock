@@ -14,6 +14,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Generate birthday secret config
+        env:
+          BIRTHDAY_ICS_URL: ${{ secrets.BIRTHDAY_ICS_URL }}
+        run: |
+          php -r 'file_put_contents("birthdays_secret.php", "<?php\nreturn ".var_export(getenv("BIRTHDAY_ICS_URL"), true).";\n");'
+
       - name: Upload files via FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -42,3 +48,5 @@ jobs:
             README.md
             SPEC.md
             *.zip
+            docs/**
+            tests/**
