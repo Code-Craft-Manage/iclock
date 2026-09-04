@@ -104,18 +104,33 @@ function birthdays_fetch_ics($url) {
     return false;
 }
 
-/* Today's month-day: prefer the client's ?md= (its own timezone), else server. */
+/*
+ * Today's month-day ('MMDD'). We accept the client's ?md= (so the iPad's own
+ * timezone decides "today" across midnight) ONLY when it falls within +/-1 day
+ * of the server's current date. Any other value falls back to the server's
+ * today, so the endpoint can only ever reveal names around "today" instead of
+ * letting a caller enumerate all 366 days. A +/-1 day window covers the largest
+ * possible iPad-vs-server timezone offset.
+ */
 function birthdays_today_md() {
-    if (isset($_GET['md']) && preg_match('/^\d{4}$/', $_GET['md'])) {
+    $now = time();
+    $window = array(
+        date('md', $now - 86400),  // yesterday (server)
+        date('md', $now),          // today (server)
+        date('md', $now + 86400)   // tomorrow (server)
+    );
+    if (isset($_GET['md']) && preg_match('/^\d{4}$/', $_GET['md'])
+        && in_array($_GET['md'], $window, true)) {
         return $_GET['md'];
     }
-    return date('md');
+    return date('md', $now);
 }
 
 function birthdays_main() {
     header('Content-Type: application/json; charset=utf-8');
-    header('Access-Control-Allow-Origin: *');
     header('Cache-Control: no-cache');
+    // No CORS header: the iPad calls this same-origin, so a wildcard
+    // Access-Control-Allow-Origin would only invite cross-origin reads.
 
     $md  = birthdays_today_md();
     $ics = birthdays_fetch_ics(birthdays_read_secret());
