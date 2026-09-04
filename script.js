@@ -10,16 +10,23 @@ var CONFIG = {
   // Open-Meteo directly (old iPad / iOS 9.3.5 has no modern TLS). Relative
   // path, so it just works when index.html + proxy.php sit together.
   proxyUrl: 'proxy.php',
+  // Same-origin endpoint that reads today's birthdays from the private
+  // Google Calendar server-side (see birthdays.php).
+  birthdaysUrl: 'birthdays.php',
   // Sunday-first, matching Date.getDay() (0 = Sunday). pt-BR default.
   weekdays: ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 };
 
 var CACHE_KEY = 'iclock_weather';
 var UNIT_KEY = 'iclock_unit';        // remembers 'C' or 'F' across reloads
+var BIRTHDAYS_CACHE_KEY = 'iclock_birthdays'; // { data:[names], md:'MMDD', ts }
 var STALE_MS = 3 * 60 * 60 * 1000;   // 3 hours -> dim the weather block
 
 /* Last weather values we managed to show (from network or cache). */
 var lastWeather = null;
+
+/* Local month-day ('MMDD') last seen by updateClock, to detect date rollover. */
+var currentMd = null;
 
 /* Unit system. Tap the temperature (or wind) to switch:
    Celsius  -> °C, km/h, DD/MM (Brazil/world)
@@ -55,6 +62,13 @@ function updateClock() {
   document.getElementById('clock').innerHTML = timeString;
   document.getElementById('date-string').innerHTML = dateString;
   document.getElementById('weekday-string').innerHTML = CONFIG.weekdays[now.getDay()];
+
+  // Refetch birthdays when the local date rolls over (e.g. across midnight).
+  var md = pad2(month) + pad2(day);
+  if (currentMd !== null && currentMd !== md) {
+    fetchBirthdays();
+  }
+  currentMd = md;
 }
 
 /* ------------------------ Weather helpers ------------------------ */
@@ -278,6 +292,52 @@ function fetchWeather() {
   });
 }
 
+/* --------------------------- Birthdays --------------------------- */
+/* Local month-day as 'MMDD', matching what birthdays.php expects. */
+function todayMd() {
+  var now = new Date();
+  return pad2(now.getMonth() + 1) + pad2(now.getDate());
+}
+
+function renderBirthdays(list) {
+  var el = document.getElementById('birthdays');
+  if (!el) return;
+  if (!list || list.length === 0) {
+    el.className = 'hidden';
+    return;
+  }
+  document.getElementById('birthdays-text').innerHTML = list.join(', ');
+  el.className = '';
+}
+
+function saveBirthdaysCache(list, md) {
+  try {
+    var payload = { data: list, md: md, ts: new Date().getTime() };
+    window.localStorage.setItem(BIRTHDAYS_CACHE_KEY, JSON.stringify(payload));
+  } catch (e) { /* storage full or disabled - ignore */ }
+}
+
+function loadBirthdaysCache() {
+  try {
+    var raw = window.localStorage.getItem(BIRTHDAYS_CACHE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw); // { data:[...], md:'MMDD', ts:number }
+  } catch (e) {
+    return null;
+  }
+}
+
+function fetchBirthdays() {
+  var md = todayMd();
+  getJson(CONFIG.birthdaysUrl + '?md=' + md, 12000, function (data) {
+    var list = (data && data.birthdays) ? data.birthdays : [];
+    renderBirthdays(list);
+    saveBirthdaysCache(list, md);
+  }, function () {
+    // Fetch failed: keep whatever is already shown, retry next tick.
+  });
+}
+
 /* ----------------------- Unit toggle (tap) ----------------------- */
 function toggleUnits() {
   isCelsius = !isCelsius;
@@ -312,9 +372,17 @@ function init() {
     renderWeather(cached.data, isStale);
   }
 
+  // Birthdays: show today's cached list instantly (skip a list from another day).
+  var cachedBirthdays = loadBirthdaysCache();
+  if (cachedBirthdays && cachedBirthdays.md === todayMd() && cachedBirthdays.data) {
+    renderBirthdays(cachedBirthdays.data);
+  }
+  fetchBirthdays();
+
   // Then refresh from the network and keep refreshing.
   fetchWeather();
   setInterval(fetchWeather, 15 * 60 * 1000); // every 15 minutes
+  setInterval(fetchBirthdays, 15 * 60 * 1000); // pick up same-day additions
 }
 
 init();

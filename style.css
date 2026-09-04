@@ -113,3 +113,14 @@ body {
 .stale {
   opacity: 0.45;
 }
+
+/* Today's birthdays line (hidden when nobody has a birthday today) */
+#birthdays {
+  font-size: 44px;
+  margin-top: 24px;
+  color: #ffcc00;   /* gold */
+}
+
+.hidden {
+  display: none;
+}
