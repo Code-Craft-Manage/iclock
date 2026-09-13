@@ -23,6 +23,7 @@ check('timed DTSTART with TZID',     parse_birthdays_ics($ics, '1220'), array('M
 check('comma unescaped in SUMMARY',  parse_birthdays_ics($ics, '0704'), array('Smith, John'));
 check('folded SUMMARY line',         parse_birthdays_ics($ics, '0401'), array('Beatriz Foldado'));
 check('no birthdays that day',       parse_birthdays_ics($ics, '0101'), array());
+check('recurring event deduped by UID', parse_birthdays_ics($ics, '0913'), array('Casamento de Daniel (2014)'));
 
 if ($failures > 0) { echo "\n$failures failure(s)\n"; exit(1); }
 echo "\nAll tests passed\n";
