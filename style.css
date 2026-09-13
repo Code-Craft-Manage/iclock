@@ -124,3 +124,64 @@ body {
 .hidden {
   display: none;
 }
+
+/* ---------------------------------------------------------------------------
+   Phone layout. The desktop/iPad sizes above are fixed pixels tuned for a
+   large screen; on a narrow phone they overflow (the clock and wind spill off
+   the edges). Below ~600px we switch to viewport-relative sizes so everything
+   scales to the phone's width, and let the weather rows wrap instead of
+   running off-screen.
+   --------------------------------------------------------------------------- */
+@media (max-width: 600px) {
+  #container {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 12px;
+  }
+
+  #clock {
+    font-size: 17vw;   /* 8 monospace chars (HH:MM:SS) fit the width */
+  }
+
+  #dateWeekday {
+    font-size: 9vw;
+    margin-top: 3vw;
+  }
+
+  #temp-block {
+    margin-top: 4vw;
+    -webkit-box-pack: center;
+    justify-content: center;
+    -webkit-flex-wrap: wrap;
+    flex-wrap: wrap;
+  }
+
+  #temp-main {
+    font-size: 16vw;
+    margin-right: 4vw;
+  }
+
+  #temp-range {
+    font-size: 6vw;
+  }
+
+  #weather-info {
+    margin-top: 4vw;
+    -webkit-flex-wrap: wrap;
+    flex-wrap: wrap;
+  }
+
+  #rain, #humidity {
+    font-size: 5.5vw;
+    margin-right: 5vw;
+  }
+
+  #wind {
+    font-size: 5.5vw;
+  }
+
+  #birthdays {
+    font-size: 6vw;
+    margin-top: 4vw;
+  }
+}
