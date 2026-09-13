@@ -27,12 +27,15 @@ function ics_unescape($s) {
  * month-day equals $md ('MMDD'). Month-day matching handles yearly recurrence,
  * so RRULE is ignored. Pure (no I/O) so it is easy to unit-test.
  *
- * A single recurring event is often exported as several VEVENT blocks (the
- * master plus recurrence-instance overrides), all sharing one UID and the same
- * month-day. To avoid showing the same anniversary two or three times, events
- * are de-duplicated by UID (falling back to the SUMMARY text when a VEVENT has
- * no UID). Two different people who share a name still show separately because
- * they carry distinct UIDs.
+ * A single anniversary frequently reaches the calendar as several VEVENT
+ * blocks: a recurring event exported as its master plus recurrence-instance
+ * overrides (all sharing one UID), or the same event saved by hand more than
+ * once (each copy a distinct UID). Both cases put the identical line on the
+ * clock two or three times, so matches are de-duplicated two ways:
+ *   1. by UID, collapsing recurrence overrides even if an instance was renamed;
+ *   2. by the final display text, collapsing separate entries that render the
+ *      same, whatever their UIDs.
+ * The net effect is that a given name is shown at most once per day.
  */
 function parse_birthdays_ics($ics, $md) {
     // Normalise line endings, then unfold: a line starting with space or tab is
@@ -42,7 +45,8 @@ function parse_birthdays_ics($ics, $md) {
     $lines = explode("\n", $ics);
 
     $names = array();
-    $seen  = array();   // dedup keys (UID, or SUMMARY when UID is absent)
+    $seenUids  = array();   // UIDs already emitted (recurrence overrides)
+    $seenNames = array();   // display texts already emitted (hand-made copies)
     $inEvent = false;
     $summary = null;
     $eventMd = null;
@@ -54,9 +58,15 @@ function parse_birthdays_ics($ics, $md) {
         }
         if ($line === 'END:VEVENT') {
             if ($summary !== null && $eventMd !== null && $eventMd === $md) {
-                $key = ($uid !== null && $uid !== '') ? 'uid:' . $uid : 'sum:' . $summary;
-                if (!isset($seen[$key])) {
-                    $seen[$key] = true;
+                $hasUid  = ($uid !== null && $uid !== '');
+                $uidSeen = ($hasUid && isset($seenUids[$uid]));
+                // Record every matching UID up front, even when this block is
+                // suppressed by the display-text check below: otherwise a later
+                // renamed recurrence override of the same UID would slip past
+                // the UID check and print a second line.
+                if ($hasUid) $seenUids[$uid] = true;
+                if (!$uidSeen && !isset($seenNames[$summary])) {
+                    $seenNames[$summary] = true;
                     $names[] = $summary;
                 }
             }
