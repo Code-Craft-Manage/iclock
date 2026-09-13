@@ -26,6 +26,13 @@ function ics_unescape($s) {
  * Parse iCalendar text; return the SUMMARY of every VEVENT whose DTSTART
  * month-day equals $md ('MMDD'). Month-day matching handles yearly recurrence,
  * so RRULE is ignored. Pure (no I/O) so it is easy to unit-test.
+ *
+ * A single recurring event is often exported as several VEVENT blocks (the
+ * master plus recurrence-instance overrides), all sharing one UID and the same
+ * month-day. To avoid showing the same anniversary two or three times, events
+ * are de-duplicated by UID (falling back to the SUMMARY text when a VEVENT has
+ * no UID). Two different people who share a name still show separately because
+ * they carry distinct UIDs.
  */
 function parse_birthdays_ics($ics, $md) {
     // Normalise line endings, then unfold: a line starting with space or tab is
@@ -35,17 +42,23 @@ function parse_birthdays_ics($ics, $md) {
     $lines = explode("\n", $ics);
 
     $names = array();
+    $seen  = array();   // dedup keys (UID, or SUMMARY when UID is absent)
     $inEvent = false;
     $summary = null;
     $eventMd = null;
+    $uid     = null;
 
     foreach ($lines as $line) {
         if ($line === 'BEGIN:VEVENT') {
-            $inEvent = true; $summary = null; $eventMd = null; continue;
+            $inEvent = true; $summary = null; $eventMd = null; $uid = null; continue;
         }
         if ($line === 'END:VEVENT') {
             if ($summary !== null && $eventMd !== null && $eventMd === $md) {
-                $names[] = $summary;
+                $key = ($uid !== null && $uid !== '') ? 'uid:' . $uid : 'sum:' . $summary;
+                if (!isset($seen[$key])) {
+                    $seen[$key] = true;
+                    $names[] = $summary;
+                }
             }
             $inEvent = false; continue;
         }
@@ -59,6 +72,8 @@ function parse_birthdays_ics($ics, $md) {
 
         if ($prop === 'SUMMARY') {
             $summary = ics_unescape($value);
+        } else if ($prop === 'UID') {
+            $uid = trim($value);
         } else if ($prop === 'DTSTART') {
             // Value is 20200315 or 20200315T090000Z; take the first YYYYMMDD.
             if (preg_match('/(\d{4})(\d{2})(\d{2})/', $value, $m)) {
