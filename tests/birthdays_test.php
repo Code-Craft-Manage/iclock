@@ -23,7 +23,12 @@ check('timed DTSTART with TZID',     parse_birthdays_ics($ics, '1220'), array('M
 check('comma unescaped in SUMMARY',  parse_birthdays_ics($ics, '0704'), array('Smith, John'));
 check('folded SUMMARY line',         parse_birthdays_ics($ics, '0401'), array('Beatriz Foldado'));
 check('no birthdays that day',       parse_birthdays_ics($ics, '0101'), array());
+// Same UID, DIFFERENT summaries per instance: only UID-based de-dup collapses
+// these to one (summary-based de-dup would keep all three), so this asserts the
+// UID key specifically. The first-seen block (the master) wins.
 check('recurring event deduped by UID', parse_birthdays_ics($ics, '0913'), array('Casamento de Daniel (2014)'));
+// Two different people who share a name carry distinct UIDs, so both still show.
+check('distinct UIDs, same name kept',  parse_birthdays_ics($ics, '0914'), array('Aniversário de João', 'Aniversário de João'));
 
 if ($failures > 0) { echo "\n$failures failure(s)\n"; exit(1); }
 echo "\nAll tests passed\n";
