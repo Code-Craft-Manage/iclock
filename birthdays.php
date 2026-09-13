@@ -58,9 +58,14 @@ function parse_birthdays_ics($ics, $md) {
         }
         if ($line === 'END:VEVENT') {
             if ($summary !== null && $eventMd !== null && $eventMd === $md) {
-                $uidSeen = ($uid !== null && $uid !== '' && isset($seenUids[$uid]));
+                $hasUid  = ($uid !== null && $uid !== '');
+                $uidSeen = ($hasUid && isset($seenUids[$uid]));
+                // Record every matching UID up front, even when this block is
+                // suppressed by the display-text check below: otherwise a later
+                // renamed recurrence override of the same UID would slip past
+                // the UID check and print a second line.
+                if ($hasUid) $seenUids[$uid] = true;
                 if (!$uidSeen && !isset($seenNames[$summary])) {
-                    if ($uid !== null && $uid !== '') $seenUids[$uid] = true;
                     $seenNames[$summary] = true;
                     $names[] = $summary;
                 }

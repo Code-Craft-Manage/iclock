@@ -29,8 +29,12 @@ check('no birthdays that day',       parse_birthdays_ics($ics, '0101'), array())
 check('recurring event deduped by UID', parse_birthdays_ics($ics, '0913'), array('Casamento de Daniel (2014)'));
 // The same anniversary saved by hand three times: distinct UIDs, identical
 // display text. UID-dedup can't collapse these, so the display-text dedup must
-// — the clock shows the line once, not three times (the reported bug).
+// merge them — the clock shows the line once, not three times (the reported bug).
 check('duplicate entries, distinct UIDs', parse_birthdays_ics($ics, '0914'), array('Casamento de Ana e João (2014)'));
+// Edge case: a UID whose first block is suppressed by the display-text check
+// must still be recorded, so a later renamed override of that UID stays merged
+// instead of printing a second line.
+check('suppressed UID + renamed override', parse_birthdays_ics($ics, '0915'), array('Festa (2016)'));
 
 if ($failures > 0) { echo "\n$failures failure(s)\n"; exit(1); }
 echo "\nAll tests passed\n";
