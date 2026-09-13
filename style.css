@@ -116,7 +116,7 @@ body {
 
 /* Today's birthdays line (hidden when nobody has a birthday today) */
 #birthdays {
-  font-size: 44px;
+  font-size: 32px;
   margin-top: 24px;
   color: #ffcc00;   /* gold */
 }
