@@ -71,3 +71,9 @@ Look up any city's coordinates once and paste them in.
   network blip still shows something (dimmed if more than 3 hours old).
 - Icons are **Font Awesome 4.7** (from cdnjs) — vector glyphs that render
   reliably on the iPad 2, unlike some emoji.
+- **Phone-friendly:** below 600px wide the layout switches to
+  viewport-relative sizes (a `@media` query in `style.css`) so nothing
+  overflows in portrait on a phone. The iPad/desktop layout is unchanged.
+- The `style.css`/`script.js` links carry a `?v=N` version tag; bump the
+  number when you change those files so browsers fetch the new version
+  instead of a stale cached copy.
