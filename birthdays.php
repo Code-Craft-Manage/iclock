@@ -42,7 +42,8 @@ function ics_unescape($s) {
  *   - series whose RRULE has an UNTIL before $ymd ('YYYYMMDD', today). Editing a
  *     yearly event with "this and following events" leaves the old series in the
  *     feed with its original DTSTART, truncated by UNTIL; matching on month-day
- *     alone would resurrect its old title next to the new one.
+ *     alone would resurrect its old title next to the new one. Leftover
+ *     recurrence overrides (same UID) of such a series are skipped as well.
  */
 function parse_birthdays_ics($ics, $md, $ymd) {
     // Normalise line endings, then unfold: a line starting with space or tab is
@@ -51,37 +52,27 @@ function parse_birthdays_ics($ics, $md, $ymd) {
     $ics = preg_replace("/\n[ \t]/", '', $ics);
     $lines = explode("\n", $ics);
 
-    $names = array();
-    $seenUids  = array();   // UIDs already emitted (recurrence overrides)
-    $seenNames = array();   // display texts already emitted (hand-made copies)
+    $events   = array();    // every VEVENT, in feed order
+    $deadUids = array();    // UIDs of series that ended before $ymd
     $inEvent = false;
     $summary = null;
     $eventMd = null;
     $uid     = null;
     $cancelled = false;
     $until   = null;
+    $isOverride = false;
 
     foreach ($lines as $line) {
         if ($line === 'BEGIN:VEVENT') {
             $inEvent = true; $summary = null; $eventMd = null; $uid = null;
-            $cancelled = false; $until = null; continue;
+            $cancelled = false; $until = null; $isOverride = false; continue;
         }
         if ($line === 'END:VEVENT') {
-            $ended = ($until !== null && $until < $ymd);
-            if ($summary !== null && $eventMd !== null && $eventMd === $md
-                && !$cancelled && !$ended) {
-                $hasUid  = ($uid !== null && $uid !== '');
-                $uidSeen = ($hasUid && isset($seenUids[$uid]));
-                // Record every matching UID up front, even when this block is
-                // suppressed by the display-text check below: otherwise a later
-                // renamed recurrence override of the same UID would slip past
-                // the UID check and print a second line.
-                if ($hasUid) $seenUids[$uid] = true;
-                if (!$uidSeen && !isset($seenNames[$summary])) {
-                    $seenNames[$summary] = true;
-                    $names[] = $summary;
-                }
-            }
+            $hasUid = ($uid !== null && $uid !== '');
+            $ended  = ($until !== null && $until < $ymd);
+            // Only a series master can end its UID; an override must not.
+            if ($ended && $hasUid && !$isOverride) $deadUids[$uid] = true;
+            $events[] = array($summary, $eventMd, $uid, $hasUid, $cancelled, $ended);
             $inEvent = false; continue;
         }
         if (!$inEvent) continue;
@@ -96,6 +87,8 @@ function parse_birthdays_ics($ics, $md, $ymd) {
             $summary = ics_unescape($value);
         } else if ($prop === 'UID') {
             $uid = trim($value);
+        } else if ($prop === 'RECURRENCE-ID') {
+            $isOverride = true;
         } else if ($prop === 'STATUS') {
             $cancelled = (strtoupper(trim($value)) === 'CANCELLED');
         } else if ($prop === 'RRULE') {
@@ -105,6 +98,28 @@ function parse_birthdays_ics($ics, $md, $ymd) {
             if (preg_match('/(\d{4})(\d{2})(\d{2})/', $value, $m)) {
                 $eventMd = $m[2] . $m[3];
             }
+        }
+    }
+
+    // Second pass, once every series' end is known: a recurrence override can
+    // appear before its master in the feed, and an override left behind past
+    // its series' UNTIL shares the master's UID, so it must die with it.
+    $names = array();
+    $seenUids  = array();   // UIDs already emitted (recurrence overrides)
+    $seenNames = array();   // display texts already emitted (hand-made copies)
+    foreach ($events as $e) {
+        list($summary, $eventMd, $uid, $hasUid, $cancelled, $ended) = $e;
+        if ($summary === null || $eventMd === null || $eventMd !== $md) continue;
+        if ($cancelled || $ended || ($hasUid && isset($deadUids[$uid]))) continue;
+        $uidSeen = ($hasUid && isset($seenUids[$uid]));
+        // Record every matching UID up front, even when this block is
+        // suppressed by the display-text check below: otherwise a later
+        // renamed recurrence override of the same UID would slip past
+        // the UID check and print a second line.
+        if ($hasUid) $seenUids[$uid] = true;
+        if (!$uidSeen && !isset($seenNames[$summary])) {
+            $seenNames[$summary] = true;
+            $names[] = $summary;
         }
     }
     return $names;

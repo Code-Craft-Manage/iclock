@@ -51,5 +51,22 @@ $edge = "BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:a\nSUMMARY:Hoje\nDTSTART;VALUE=DATE:
 check('UNTIL equals today stays live', parse_birthdays_ics($edge, '1014', '20261014'), array('Hoje'));
 check('UNTIL yesterday is dropped',    parse_birthdays_ics($edge, '1014', '20261015'), array());
 
+// An override left behind past its series' UNTIL shares the master's UID. It
+// has no RRULE of its own, so it must be dropped via the master, wherever the
+// master sits in the feed (here: after the override).
+$orphan = "BEGIN:VCALENDAR\n"
+        . "BEGIN:VEVENT\nUID:A\nRECURRENCE-ID;VALUE=DATE:20231014\nSUMMARY:Renomeado\nDTSTART;VALUE=DATE:20231014\nEND:VEVENT\n"
+        . "BEGIN:VEVENT\nUID:A\nSUMMARY:Velho\nDTSTART:20101014T080000Z\nRRULE:FREQ=YEARLY;UNTIL=20191014T080000Z\nEND:VEVENT\n"
+        . "BEGIN:VEVENT\nUID:B\nSUMMARY:Novo\nDTSTART;VALUE=DATE:20201014\nRRULE:FREQ=YEARLY\nEND:VEVENT\n"
+        . "END:VCALENDAR\n";
+check('orphan override of ended series dropped', parse_birthdays_ics($orphan, '1014', '20261014'), array('Novo'));
+
+// An expired UNTIL on an override must not kill its still-active master.
+$live = "BEGIN:VCALENDAR\n"
+      . "BEGIN:VEVENT\nUID:C\nSUMMARY:Ativo\nDTSTART;VALUE=DATE:20101014\nRRULE:FREQ=YEARLY\nEND:VEVENT\n"
+      . "BEGIN:VEVENT\nUID:C\nRECURRENCE-ID;VALUE=DATE:20191014\nSUMMARY:Ativo\nDTSTART;VALUE=DATE:20191014\nRRULE:FREQ=YEARLY;UNTIL=20191014\nEND:VEVENT\n"
+      . "END:VCALENDAR\n";
+check('expired override does not kill live master', parse_birthdays_ics($live, '1014', '20261014'), array('Ativo'));
+
 if ($failures > 0) { echo "\n$failures failure(s)\n"; exit(1); }
 echo "\nAll tests passed\n";
