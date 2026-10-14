@@ -44,7 +44,7 @@ function ics_unescape($s) {
  *     feed with its original DTSTART, truncated by UNTIL; matching on month-day
  *     alone would resurrect its old title next to the new one.
  */
-function parse_birthdays_ics($ics, $md, $ymd = null) {
+function parse_birthdays_ics($ics, $md, $ymd) {
     // Normalise line endings, then unfold: a line starting with space or tab is
     // a continuation of the previous line (RFC 5545 line folding).
     $ics = str_replace(array("\r\n", "\r"), "\n", $ics);
@@ -67,7 +67,7 @@ function parse_birthdays_ics($ics, $md, $ymd = null) {
             $cancelled = false; $until = null; continue;
         }
         if ($line === 'END:VEVENT') {
-            $ended = ($ymd !== null && $until !== null && $until < $ymd);
+            $ended = ($until !== null && $until < $ymd);
             if ($summary !== null && $eventMd !== null && $eventMd === $md
                 && !$cancelled && !$ended) {
                 $hasUid  = ($uid !== null && $uid !== '');
