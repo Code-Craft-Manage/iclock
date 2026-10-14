@@ -61,5 +61,12 @@ $orphan = "BEGIN:VCALENDAR\n"
         . "END:VCALENDAR\n";
 check('orphan override of ended series dropped', parse_birthdays_ics($orphan, '1014', '20261014'), array('Novo'));
 
+// An expired UNTIL on an override must not kill its still-active master.
+$live = "BEGIN:VCALENDAR\n"
+      . "BEGIN:VEVENT\nUID:C\nSUMMARY:Ativo\nDTSTART;VALUE=DATE:20101014\nRRULE:FREQ=YEARLY\nEND:VEVENT\n"
+      . "BEGIN:VEVENT\nUID:C\nRECURRENCE-ID;VALUE=DATE:20191014\nSUMMARY:Ativo\nDTSTART;VALUE=DATE:20191014\nRRULE:FREQ=YEARLY;UNTIL=20191014\nEND:VEVENT\n"
+      . "END:VCALENDAR\n";
+check('expired override does not kill live master', parse_birthdays_ics($live, '1014', '20261014'), array('Ativo'));
+
 if ($failures > 0) { echo "\n$failures failure(s)\n"; exit(1); }
 echo "\nAll tests passed\n";

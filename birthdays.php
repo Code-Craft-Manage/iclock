@@ -60,16 +60,18 @@ function parse_birthdays_ics($ics, $md, $ymd) {
     $uid     = null;
     $cancelled = false;
     $until   = null;
+    $isOverride = false;
 
     foreach ($lines as $line) {
         if ($line === 'BEGIN:VEVENT') {
             $inEvent = true; $summary = null; $eventMd = null; $uid = null;
-            $cancelled = false; $until = null; continue;
+            $cancelled = false; $until = null; $isOverride = false; continue;
         }
         if ($line === 'END:VEVENT') {
             $hasUid = ($uid !== null && $uid !== '');
             $ended  = ($until !== null && $until < $ymd);
-            if ($ended && $hasUid) $deadUids[$uid] = true;
+            // Only a series master can end its UID; an override must not.
+            if ($ended && $hasUid && !$isOverride) $deadUids[$uid] = true;
             $events[] = array($summary, $eventMd, $uid, $hasUid, $cancelled, $ended);
             $inEvent = false; continue;
         }
@@ -85,6 +87,8 @@ function parse_birthdays_ics($ics, $md, $ymd) {
             $summary = ics_unescape($value);
         } else if ($prop === 'UID') {
             $uid = trim($value);
+        } else if ($prop === 'RECURRENCE-ID') {
+            $isOverride = true;
         } else if ($prop === 'STATUS') {
             $cancelled = (strtoupper(trim($value)) === 'CANCELLED');
         } else if ($prop === 'RRULE') {
