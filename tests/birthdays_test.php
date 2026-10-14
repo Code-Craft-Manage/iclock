@@ -36,5 +36,14 @@ check('duplicate entries, distinct UIDs', parse_birthdays_ics($ics, '0914'), arr
 // instead of printing a second line.
 check('suppressed UID + renamed override', parse_birthdays_ics($ics, '0915'), array('Festa (2016)'));
 
+// Renaming a yearly event ("this and following") leaves the old series in the
+// feed with a different UID and UNTIL; cancelled blocks must be ignored too.
+$renamed = "BEGIN:VEVENT\nUID:old1\nSUMMARY:Aniversario de Norma\nDTSTART;VALUE=DATE:20101014\nRRULE:FREQ=YEARLY;UNTIL=20251014\nEND:VEVENT\n"
+         . "BEGIN:VEVENT\nUID:old2\nSUMMARY:Aniversario de Norma Goncalves\nDTSTART;VALUE=DATE:20101014\nRRULE:FREQ=YEARLY;UNTIL=20261013T025959Z\nEND:VEVENT\n"
+         . "BEGIN:VEVENT\nUID:gone\nSUMMARY:Cancelado\nSTATUS:CANCELLED\nDTSTART;VALUE=DATE:20101014\nEND:VEVENT\n"
+         . "BEGIN:VEVENT\nUID:new\nSUMMARY:Norma Bernardi (1923 - 2021)\nDTSTART;VALUE=DATE:20261014\nRRULE:FREQ=YEARLY\nEND:VEVENT\n";
+$renamed = "BEGIN:VCALENDAR\n" . $renamed . "END:VCALENDAR\n";
+check('ended series + cancelled skipped', parse_birthdays_ics($renamed, '1014', '20261014'), array('Norma Bernardi (1923 - 2021)'));
+
 if ($failures > 0) { echo "\n$failures failure(s)\n"; exit(1); }
 echo "\nAll tests passed\n";
