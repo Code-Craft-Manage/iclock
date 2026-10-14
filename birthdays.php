@@ -36,8 +36,15 @@ function ics_unescape($s) {
  *   2. by the final display text, collapsing separate entries that render the
  *      same, whatever their UIDs.
  * The net effect is that a given name is shown at most once per day.
+ *
+ * Two kinds of VEVENT are skipped because they are not live on the calendar:
+ *   - STATUS:CANCELLED blocks;
+ *   - series whose RRULE has an UNTIL before $ymd ('YYYYMMDD', today). Editing a
+ *     yearly event with "this and following events" leaves the old series in the
+ *     feed with its original DTSTART, truncated by UNTIL; matching on month-day
+ *     alone would resurrect its old title next to the new one.
  */
-function parse_birthdays_ics($ics, $md) {
+function parse_birthdays_ics($ics, $md, $ymd) {
     // Normalise line endings, then unfold: a line starting with space or tab is
     // a continuation of the previous line (RFC 5545 line folding).
     $ics = str_replace(array("\r\n", "\r"), "\n", $ics);
@@ -51,13 +58,18 @@ function parse_birthdays_ics($ics, $md) {
     $summary = null;
     $eventMd = null;
     $uid     = null;
+    $cancelled = false;
+    $until   = null;
 
     foreach ($lines as $line) {
         if ($line === 'BEGIN:VEVENT') {
-            $inEvent = true; $summary = null; $eventMd = null; $uid = null; continue;
+            $inEvent = true; $summary = null; $eventMd = null; $uid = null;
+            $cancelled = false; $until = null; continue;
         }
         if ($line === 'END:VEVENT') {
-            if ($summary !== null && $eventMd !== null && $eventMd === $md) {
+            $ended = ($until !== null && $until < $ymd);
+            if ($summary !== null && $eventMd !== null && $eventMd === $md
+                && !$cancelled && !$ended) {
                 $hasUid  = ($uid !== null && $uid !== '');
                 $uidSeen = ($hasUid && isset($seenUids[$uid]));
                 // Record every matching UID up front, even when this block is
@@ -84,6 +96,10 @@ function parse_birthdays_ics($ics, $md) {
             $summary = ics_unescape($value);
         } else if ($prop === 'UID') {
             $uid = trim($value);
+        } else if ($prop === 'STATUS') {
+            $cancelled = (strtoupper(trim($value)) === 'CANCELLED');
+        } else if ($prop === 'RRULE') {
+            if (preg_match('/(?:^|;)UNTIL=(\d{8})/i', $value, $m)) $until = $m[1];
         } else if ($prop === 'DTSTART') {
             // Value is 20200315 or 20200315T090000Z; take the first YYYYMMDD.
             if (preg_match('/(\d{4})(\d{2})(\d{2})/', $value, $m)) {
@@ -151,6 +167,15 @@ function birthdays_today_md() {
     return date('md', $now);
 }
 
+/* Full date ('Ymd') of the server day whose month-day is $md (within +/-1 day). */
+function birthdays_today_ymd($md) {
+    $now = time();
+    foreach (array(0, -86400, 86400) as $off) {
+        if (date('md', $now + $off) === $md) return date('Ymd', $now + $off);
+    }
+    return date('Ymd', $now);
+}
+
 function birthdays_main() {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-cache');
@@ -163,7 +188,7 @@ function birthdays_main() {
         echo json_encode(array('birthdays' => array()));
         return;
     }
-    $names = parse_birthdays_ics($ics, $md);
+    $names = parse_birthdays_ics($ics, $md, birthdays_today_ymd($md));
     echo json_encode(array('birthdays' => array_values($names)));
 }
 
