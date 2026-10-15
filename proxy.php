@@ -9,7 +9,8 @@
  * the HTTPS request to Open-Meteo server-side, and hands the JSON back to the
  * iPad over plain HTTP. No API key is needed -- Open-Meteo is keyless.
  *
- * The browser calls: proxy.php?lat=<latitude>&lon=<longitude>
+ * The browser calls: proxy.php?lat=<latitude>&lon=<longitude>[&days=<1-7>]
+ * (days defaults to 1; the forecast page asks for more).
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -19,13 +20,15 @@ header('Cache-Control: no-cache');
 // floatval() sanitises input: only a number can ever reach the outgoing URL.
 $lat = isset($_GET['lat']) ? floatval($_GET['lat']) : -30.0346; // Porto Alegre
 $lon = isset($_GET['lon']) ? floatval($_GET['lon']) : -51.2177;
+// intval() + clamp: only an integer 1..7 can reach the outgoing URL.
+$days = isset($_GET['days']) ? max(1, min(7, intval($_GET['days']))) : 1;
 
 $url = 'https://api.open-meteo.com/v1/forecast'
      . '?latitude=' . $lat
      . '&longitude=' . $lon
      . '&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m'
      . '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code'
-     . '&timezone=auto&forecast_days=1';
+     . '&timezone=auto&forecast_days=' . $days;
 
 $body = false;
 $err  = '';

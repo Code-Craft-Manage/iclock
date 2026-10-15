@@ -125,6 +125,62 @@ body {
   display: none;
 }
 
+/* Corner buttons: clock -> forecast, forecast -> clock. Big tap target for
+   the iPad; kept dim so they don't compete with the clock. */
+#forecast-link, #back-link {
+  position: absolute;
+  right: 24px;
+  bottom: 20px;
+  padding: 10px 18px;
+  font-size: 32px;
+  color: #00ff00;
+  text-decoration: none;
+  border: 2px solid #1a661a;
+  border-radius: 12px;
+  opacity: 0.7;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+/* Forecast page: one row per day */
+#forecast-title {
+  font-size: 56px;
+  margin-bottom: 20px;
+}
+
+#forecast-table {
+  margin: 0 auto;
+  border-collapse: separate;
+  border-spacing: 0 6px;
+  font-size: 48px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#forecast-table td {
+  padding: 4px 22px;
+  white-space: nowrap;
+}
+
+.fc-day {
+  text-align: left;
+}
+
+.fc-date {
+  display: block;
+  font-size: 28px;
+  color: #339933;
+}
+
+.fc-icon {
+  font-size: 56px;
+}
+
+.fc-temp, .fc-rain {
+  text-align: right;
+}
+
 /* ---------------------------------------------------------------------------
    Phone layout. The desktop/iPad sizes above are fixed pixels tuned for a
    large screen; on a narrow phone they overflow (the clock and wind spill off
@@ -183,5 +239,33 @@ body {
   #birthdays {
     font-size: 4.5vw;
     margin-top: 4vw;
+  }
+
+  #forecast-link, #back-link {
+    right: 3vw;
+    bottom: 3vw;
+    padding: 2vw 3vw;
+    font-size: 5vw;
+  }
+
+  #forecast-title {
+    font-size: 8vw;
+    margin-bottom: 3vw;
+  }
+
+  #forecast-table {
+    font-size: 6vw;
+  }
+
+  #forecast-table td {
+    padding: 1vw 2vw;
+  }
+
+  .fc-date {
+    font-size: 3.6vw;
+  }
+
+  .fc-icon {
+    font-size: 7vw;
   }
 }

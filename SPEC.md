@@ -161,7 +161,7 @@ it minimal.)
 
 ## 8. Configuration
 
-A single block at the top of `script.js`:
+A single block at the top of `common.js`:
 ```javascript
 var CONFIG = {
   latitude: -30.0346,     // Porto Alegre
