@@ -76,6 +76,8 @@ $once = "BEGIN:VCALENDAR\n"
       . "BEGIN:VEVENT\nUID:y1\nSUMMARY:Janaina e Arthur (2014)\nDTSTART;VALUE=DATE:20261015\nRRULE:FREQ=YEARLY\nEND:VEVENT\n"
       . "END:VCALENDAR\n";
 check('one-time events dropped in later years', parse_birthdays_ics($once, '1015', '20261015'), array('Janaina e Arthur (2014)'));
+$timedOnly = "BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:o2\nSUMMARY:Aniversario de Janaina\nDTSTART:20081015T070000Z\nEND:VEVENT\nEND:VCALENDAR\n";
+check('timed one-time event shows on its own date', parse_birthdays_ics($timedOnly, '1015', '20081015'), array('Aniversario de Janaina'));
 $onceOnly = "BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:o1\nSUMMARY:Aniversario de Jana\nDTSTART;VALUE=DATE:20091015\nEND:VEVENT\nEND:VCALENDAR\n";
 check('one-time event shows on its own date',   parse_birthdays_ics($onceOnly, '1015', '20091015'), array('Aniversario de Jana'));
 
