@@ -8,7 +8,7 @@ Rebuilt from scratch (successor to Clockosaurus).
 ## Why there's a PHP proxy
 iOS 9.3.5 can't complete a TLS handshake with `api.open-meteo.com` (its
 Let's Encrypt cert isn't trusted, and it only offers ChaCha20 / TLS 1.3
-ciphers the old iPad lacks). So `script.js` tries Open-Meteo **directly**
+ciphers the old iPad lacks). So the page scripts try Open-Meteo **directly**
 first (works on modern browsers) and, if that fails, falls back to
 **`proxy.php`** — a tiny same-origin script that fetches Open-Meteo
 server-side and relays the JSON. No API key: Open-Meteo is keyless.
@@ -51,8 +51,17 @@ key. Data shown: current temp, daily min/max, rain %, humidity, wind. See
 [Why there's a PHP proxy](#why-theres-a-php-proxy) for how the old iPad
 reaches it.
 
+## Forecast page
+The **Previsão** button (bottom-right of the clock) opens `forecast.html`: the
+next 5 days (tomorrow onward) with weekday, date, condition icon, max/min and
+rain chance. The **Relógio** button brings you back. Tap the table to switch
+°C/°F, same as on the clock. It uses the same Open-Meteo-then-`proxy.php`
+fallback (the proxy takes an optional `days` parameter) and caches the last
+forecast in `localStorage`.
+
 ## Change location
-Edit the two numbers at the top of `script.js`:
+Edit the two numbers at the top of `common.js` (shared by the clock and the
+forecast page):
 ```javascript
 var CONFIG = {
   latitude: -30.0346,   // Porto Alegre
@@ -74,6 +83,6 @@ Look up any city's coordinates once and paste them in.
 - **Phone-friendly:** below 600px wide the layout switches to
   viewport-relative sizes (a `@media` query in `style.css`) so nothing
   overflows in portrait on a phone. The iPad/desktop layout is unchanged.
-- The `style.css`/`script.js` links carry a `?v=N` version tag; bump the
+- The `style.css`/`common.js`/`script.js`/`forecast.js` links carry a `?v=N` version tag; bump the
   number when you change those files so browsers fetch the new version
   instead of a stale cached copy.
