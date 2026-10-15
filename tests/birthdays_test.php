@@ -68,5 +68,16 @@ $live = "BEGIN:VCALENDAR\n"
       . "END:VCALENDAR\n";
 check('expired override does not kill live master', parse_birthdays_ics($live, '1014', '20261014'), array('Ativo'));
 
+// One-time events (no RRULE) -- e.g. old imported "Aniversario de X" entries --
+// must not repeat every year: they match only on their own full date.
+$once = "BEGIN:VCALENDAR\n"
+      . "BEGIN:VEVENT\nUID:o1\nSUMMARY:Aniversario de Jana\nDTSTART;VALUE=DATE:20091015\nEND:VEVENT\n"
+      . "BEGIN:VEVENT\nUID:o2\nSUMMARY:Aniversario de Janaina\nDTSTART:20081015T070000Z\nEND:VEVENT\n"
+      . "BEGIN:VEVENT\nUID:y1\nSUMMARY:Janaina e Arthur (2014)\nDTSTART;VALUE=DATE:20261015\nRRULE:FREQ=YEARLY\nEND:VEVENT\n"
+      . "END:VCALENDAR\n";
+check('one-time events dropped in later years', parse_birthdays_ics($once, '1015', '20261015'), array('Janaina e Arthur (2014)'));
+$onceOnly = "BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:o1\nSUMMARY:Aniversario de Jana\nDTSTART;VALUE=DATE:20091015\nEND:VEVENT\nEND:VCALENDAR\n";
+check('one-time event shows on its own date',   parse_birthdays_ics($onceOnly, '1015', '20091015'), array('Aniversario de Jana'));
+
 if ($failures > 0) { echo "\n$failures failure(s)\n"; exit(1); }
 echo "\nAll tests passed\n";
