@@ -24,8 +24,10 @@ function ics_unescape($s) {
 
 /*
  * Parse iCalendar text; return the SUMMARY of every VEVENT whose DTSTART
- * month-day equals $md ('MMDD'). Month-day matching handles yearly recurrence,
- * so RRULE is ignored. Pure (no I/O) so it is easy to unit-test.
+ * month-day equals $md ('MMDD'). Month-day matching handles yearly recurrence
+ * (RRULE itself is not expanded), but only for events that have an RRULE; an
+ * event without one happens once, so it counts only when its whole DTSTART date
+ * equals $ymd. Pure (no I/O) so it is easy to unit-test.
  *
  * A single anniversary frequently reaches the calendar as several VEVENT
  * blocks: a recurring event exported as its master plus recurrence-instance
@@ -61,18 +63,22 @@ function parse_birthdays_ics($ics, $md, $ymd) {
     $cancelled = false;
     $until   = null;
     $isOverride = false;
+    $hasRrule = false;
+    $eventYmd = null;
 
     foreach ($lines as $line) {
         if ($line === 'BEGIN:VEVENT') {
             $inEvent = true; $summary = null; $eventMd = null; $uid = null;
-            $cancelled = false; $until = null; $isOverride = false; continue;
+            $cancelled = false; $until = null; $isOverride = false;
+            $hasRrule = false; $eventYmd = null; continue;
         }
         if ($line === 'END:VEVENT') {
             $hasUid = ($uid !== null && $uid !== '');
             $ended  = ($until !== null && $until < $ymd);
             // Only a series master can end its UID; an override must not.
             if ($ended && $hasUid && !$isOverride) $deadUids[$uid] = true;
-            $events[] = array($summary, $eventMd, $uid, $hasUid, $cancelled, $ended);
+            $events[] = array($summary, $eventMd, $uid, $hasUid, $cancelled, $ended,
+                              $hasRrule, $eventYmd);
             $inEvent = false; continue;
         }
         if (!$inEvent) continue;
@@ -92,11 +98,13 @@ function parse_birthdays_ics($ics, $md, $ymd) {
         } else if ($prop === 'STATUS') {
             $cancelled = (strtoupper(trim($value)) === 'CANCELLED');
         } else if ($prop === 'RRULE') {
+            $hasRrule = true;
             if (preg_match('/(?:^|;)UNTIL=(\d{8})/i', $value, $m)) $until = $m[1];
         } else if ($prop === 'DTSTART') {
             // Value is 20200315 or 20200315T090000Z; take the first YYYYMMDD.
             if (preg_match('/(\d{4})(\d{2})(\d{2})/', $value, $m)) {
                 $eventMd = $m[2] . $m[3];
+                $eventYmd = $m[1] . $m[2] . $m[3];
             }
         }
     }
@@ -108,8 +116,11 @@ function parse_birthdays_ics($ics, $md, $ymd) {
     $seenUids  = array();   // UIDs already emitted (recurrence overrides)
     $seenNames = array();   // display texts already emitted (hand-made copies)
     foreach ($events as $e) {
-        list($summary, $eventMd, $uid, $hasUid, $cancelled, $ended) = $e;
+        list($summary, $eventMd, $uid, $hasUid, $cancelled, $ended, $hasRrule, $eventYmd) = $e;
         if ($summary === null || $eventMd === null || $eventMd !== $md) continue;
+        // A VEVENT with no RRULE happens once, on its own DTSTART date; only a
+        // yearly series may match on month-day alone.
+        if (!$hasRrule && $eventYmd !== $ymd) continue;
         if ($cancelled || $ended || ($hasUid && isset($deadUids[$uid]))) continue;
         $uidSeen = ($hasUid && isset($seenUids[$uid]));
         // Record every matching UID up front, even when this block is
