@@ -123,6 +123,7 @@ function toggleUnits() {
 /* --------------------------- Startup --------------------------- */
 function init() {
   applyStoredUnit();
+  bindNavLink('back-link');
   document.getElementById('forecast-table').onclick = toggleUnits;
 
   var cached = loadForecastCache();

@@ -114,3 +114,14 @@ function getJson(url, timeoutMs, ok, fail) {
   try { xhr.send(); }
   catch (e) { finish(false); }
 }
+
+/* In an iOS home-screen (full-screen) web app, a plain link can open in Safari
+   and drop out of full-screen. Navigating from JS keeps it inside the app. */
+function bindNavLink(id) {
+  var a = document.getElementById(id);
+  if (!a) return;
+  a.onclick = function () {
+    window.location.href = a.getAttribute('href');
+    return false;
+  };
+}

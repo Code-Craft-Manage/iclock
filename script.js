@@ -255,6 +255,7 @@ function bindToggle() {
 function init() {
   applyStoredUnit();   // restore last chosen unit before first render
   bindToggle();
+  bindNavLink('forecast-link');
   updateClock();
   setInterval(updateClock, 1000);
 
